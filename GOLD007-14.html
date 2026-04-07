@@ -35,7 +35,7 @@
             <span>LIVE SPOT 💰</span>
             <span id="STAT" style="color:var(--green)">● متصل</span>
         </div>
-        <div class="pb" id="PE">0.00</div>
+        <div class="pb" id="PE">Loading..</div>
         <div style="display:flex;justify-content:space-between;font-family:Orbitron;color:var(--gold);font-size:0.9rem">
             <span>Next: <span id="CD">05:00</span></span>
             <span>Open: <span id="OE">0.00</span></span>
@@ -58,7 +58,7 @@
             </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;border:1px solid #222">
-            <span onclick="playLongSound(450)" style="font-size:1.8rem;cursor:pointer;margin-left:10px">🔔</span>
+            <span style="font-size:1.8rem;margin-left:10px">🔔</span>
             <span style="flex:1;font-weight:700;text-align:right;font-size:1rem">تنبيه صعود الدولار</span>
             <input type="number" id="USD_THR" class="si-box" value="0.25" step="0.05" style="width:80px;font-size:0.85rem;margin-right:10px">
             <span style="font-size:0.75rem;color:var(--dim)">قرش</span>
@@ -68,10 +68,10 @@
     <div class="card">
         <div class="mn up" id="MB"><span id="ME">0.00$</span><span id="ARR" style="font-size:3rem">▲</span></div>
         <div style="margin-top:20px">
-            <div class="lv" id="V1" onclick="playLongSound(600)"><span class="lv-bell">🔔</span><span class="lv-txt" id="T1">تنبيه صعود (8$)</span><div class="lv-st" id="S1">انتظار</div></div>
-            <div class="lv" id="V2" onclick="playLongSound(800)"><span class="lv-bell">🔔</span><span class="lv-txt" id="T2">تنبيه صعود (12$)</span><div class="lv-st" id="S2">انتظار</div></div>
-            <div class="lv" id="V3" onclick="playLongSound(1000)"><span class="lv-bell">🔔</span><span class="lv-txt" id="T3">تنبيه صعود (16$)</span><div class="lv-st" id="S3">انتظار</div></div>
-            <div class="lv" id="VSL" onclick="playLongSound(300)" style="border-color:var(--red)"><span class="lv-bell">⚠️</span><span class="lv-txt" id="SL_LABEL">تنبيه الهدف</span><div class="lv-st" id="SSL">SAFE</div></div>
+            <div class="lv" id="V1"><span class="lv-bell">🔔</span><span class="lv-txt" id="T1">تنبيه صعود (8$)</span><div class="lv-st" id="S1">انتظار</div></div>
+            <div class="lv" id="V2"><span class="lv-bell">🔔</span><span class="lv-txt" id="T2">تنبيه صعود (12$)</span><div class="lv-st" id="S2">انتظار</div></div>
+            <div class="lv" id="V3"><span class="lv-bell">🔔</span><span class="lv-txt" id="T3">تنبيه صعود (16$)</span><div class="lv-st" id="S3">انتظار</div></div>
+            <div class="lv" id="VSL" style="border-color:var(--red)"><span class="lv-bell">⚠️</span><span class="lv-txt" id="SL_LABEL">تنبيه الهدف</span><div class="lv-st" id="SSL">SAFE</div></div>
         </div>
     </div>
 
@@ -81,7 +81,7 @@
             <span style="font-weight:bold">حد التنبيه ($) 🔔</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-            <input type="number" id="STP" class="si-box" placeholder="2300">
+            <input type="number" id="STP" class="si-box" placeholder="2400">
             <span style="font-weight:bold">المستهدف ($) 🎯</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -105,17 +105,18 @@ function updateLabels() {
 
 async function updateData() {
     try {
-        const gRes = await fetch('https://api.coinbase.com/v2/prices/XAU-USD/spot');
+        // استخدام API بديل ومستقر للذهب (Binance/Coinbase)
+        const gRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
         const gData = await gRes.json();
-        let p = parseFloat(gData.data.amount);
+        let p = parseFloat(gData.price);
 
-        const uRes = await fetch('https://api.coinbase.com/v2/prices/USD-EGP/spot');
+        // استخدام API مستقر للدولار
+        const uRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
         const uData = await uRes.json();
-        let u = parseFloat(uData.data.amount);
+        let u = parseFloat(uData.rates.EGP);
 
         if(!p || !u) return;
 
-        // المزامنة مع "شمعة الـ 5 دقائق" للاثنين معاً
         const n = Date.now(), s = Math.floor(n / 300000);
         if (cO === null || s !== cS) {
             cO = p; uO = u; cS = s; 
@@ -139,7 +140,6 @@ async function updateData() {
         document.getElementById('USD_CHANGE').textContent = (uDiff >= 0 ? '+' : '') + uDiff.toFixed(2);
         document.getElementById('USD_CHANGE').className = uDiff >= 0 ? 'up' : 'dn';
 
-        // تنبيهات الأونصة (صعود فقط)
         const base = parseFloat(document.getElementById('TH').value) || 8;
         if(diff > 0) {
             if(!f.v1 && diff >= base) { f.v1=1; fire('V1','S1',600, `صعود الذهب ${base}$`); }
@@ -147,7 +147,6 @@ async function updateData() {
             if(!f.v3 && diff >= (base * 2)) { f.v3=1; fire('V3','S3',1000, `صعود الذهب ${base*2}$`); }
         }
 
-        // تنبيه الدولار (صعود فقط)
         const uThr = parseFloat(document.getElementById('USD_THR').value) || 0.25;
         if(uDiff > 0 && !f.usd && uDiff >= uThr) { 
             f.usd=1; 
@@ -155,7 +154,6 @@ async function updateData() {
             ntfy("صعود الدولار!"); 
         }
 
-        // المستهدف (صعود وهبوط - ذكي)
         const stp = parseFloat(document.getElementById('STP').value);
         if(stp > 0 && !f.sl) {
             if(lP > 0) {
@@ -167,7 +165,7 @@ async function updateData() {
             document.getElementById('SL_LABEL').textContent = (p > stp) ? "تنبيه (لو نزل)" : "تنبيه (لو طلع)";
         }
         lP = p;
-    } catch(e){}
+    } catch(e){ console.error("Error fetching data:", e); }
 }
 
 function fire(v, s, freq, msg) {
@@ -192,11 +190,15 @@ function playLongSound(freq) {
 }
 
 function ntfy(msg) {
-    fetch(`https://ntfy.sh/${document.getElementById('CH').value}`, {
+    const channel = document.getElementById('CH').value;
+    fetch(`https://ntfy.sh/${channel}`, {
         method: 'POST',
         body: msg,
-        mode: 'no-cors' // حل مشكلة اللاب توب
-    }).catch(e => console.log("Ntfy Error"));
+        mode: 'no-cors'
+    }).catch(() => {
+        const img = new Image();
+        img.src = `https://ntfy.sh/${channel}/publish?message=${encodeURIComponent(msg)}`;
+    });
 }
 
 function resetUI() {
@@ -210,7 +212,7 @@ function timer() {
     document.getElementById('CD').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
-setInterval(updateData, 4000);
+setInterval(updateData, 5000);
 setInterval(timer, 1000);
 updateLabels();
 updateData();
