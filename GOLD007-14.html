@@ -10,9 +10,9 @@
     :root{--gold:#FFD700;--bg:#080808;--bg2:#111;--green:#00ff88;--red:#ff3355;--text:#e0d8c8;--dim:#666}
     body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);padding:15px 16px 100px}
     .card{background:var(--bg2);border:1px solid rgba(255,215,0,0.1);border-radius:20px;padding:20px;margin-bottom:15px}
-    .pb{font-family:'Orbitron';font-size:3.5rem;font-weight:900;color:var(--green);text-align:center;margin:10px 0;transition:color 0.3s}
+    .pb{font-family:'Orbitron';font-size:3.5rem;font-weight:900;color:var(--green);text-align:center;margin:10px 0}
     .mn{font-family:'Orbitron';font-size:2.8rem;font-weight:900;display:flex;align-items:center;justify-content:center;gap:10px}
-    .lv{display:flex;align-items:center;padding:15px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:10px;border:1px solid #222;cursor:pointer}
+    .lv{display:flex;align-items:center;padding:15px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:10px;border:1px solid #222}
     .lv-bell{order:1;font-size:1.8rem;margin-left:15px}
     .lv-txt{order:2;flex:1;font-weight:700;text-align:right;font-size:1.1rem}
     .lv-st{order:3;font-size:0.8rem;padding:6px 12px;border-radius:8px;background:#1a1a1a;color:#555;min-width:70px;text-align:center}
@@ -35,7 +35,7 @@
             <span>LIVE SPOT 💰</span>
             <span id="STAT" style="color:var(--green)">● متصل</span>
         </div>
-        <div class="pb" id="PE">Loading..</div>
+        <div class="pb" id="PE">0.00</div>
         <div style="display:flex;justify-content:space-between;font-family:Orbitron;color:var(--gold);font-size:0.9rem">
             <span>Next: <span id="CD">05:00</span></span>
             <span>Open: <span id="OE">0.00</span></span>
@@ -61,7 +61,6 @@
             <span style="font-size:1.8rem;margin-left:10px">🔔</span>
             <span style="flex:1;font-weight:700;text-align:right;font-size:1rem">تنبيه صعود الدولار</span>
             <input type="number" id="USD_THR" class="si-box" value="0.25" step="0.05" style="width:80px;font-size:0.85rem;margin-right:10px">
-            <span style="font-size:0.75rem;color:var(--dim)">قرش</span>
         </div>
     </div>
 
@@ -105,13 +104,13 @@ function updateLabels() {
 
 async function updateData() {
     try {
-        // استخدام API بديل ومستقر للذهب (Binance/Coinbase)
-        const gRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
+        // مصدر جديد للذهب (CryptoCompare) يدعم HTTPS بشكل كامل
+        const gRes = await fetch('https://min-api.cryptocompare.com/data/price?fsym=XAU&tsyms=USD');
         const gData = await gRes.json();
-        let p = parseFloat(gData.price);
+        let p = parseFloat(gData.USD);
 
-        // استخدام API مستقر للدولار
-        const uRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        // مصدر الدولار
+        const uRes = await fetch('https://open.er-api.com/v6/latest/USD');
         const uData = await uRes.json();
         let u = parseFloat(uData.rates.EGP);
 
@@ -148,24 +147,17 @@ async function updateData() {
         }
 
         const uThr = parseFloat(document.getElementById('USD_THR').value) || 0.25;
-        if(uDiff > 0 && !f.usd && uDiff >= uThr) { 
-            f.usd=1; 
-            playLongSound(450); 
-            ntfy("صعود الدولار!"); 
-        }
+        if(uDiff > 0 && !f.usd && uDiff >= uThr) { f.usd=1; fireUSD(); }
 
         const stp = parseFloat(document.getElementById('STP').value);
         if(stp > 0 && !f.sl) {
-            if(lP > 0) {
-                 if((lP < stp && p >= stp) || (lP > stp && p <= stp)) {
-                    f.sl=1;
-                    fire('VSL','SSL',300,"وصل للهدف!");
-                 }
+            if(lP > 0 && ((lP < stp && p >= stp) || (lP > stp && p <= stp))) {
+                f.sl=1; fire('VSL','SSL',300,"وصل للهدف!");
             }
             document.getElementById('SL_LABEL').textContent = (p > stp) ? "تنبيه (لو نزل)" : "تنبيه (لو طلع)";
         }
         lP = p;
-    } catch(e){ console.error("Error fetching data:", e); }
+    } catch(e){ console.log(e); }
 }
 
 function fire(v, s, freq, msg) {
@@ -173,6 +165,11 @@ function fire(v, s, freq, msg) {
     document.getElementById(s).textContent = 'HIT ✅';
     playLongSound(freq);
     ntfy(msg);
+}
+
+function fireUSD() {
+    playLongSound(450);
+    ntfy("صعود الدولار!");
 }
 
 function playLongSound(freq) {
@@ -190,15 +187,8 @@ function playLongSound(freq) {
 }
 
 function ntfy(msg) {
-    const channel = document.getElementById('CH').value;
-    fetch(`https://ntfy.sh/${channel}`, {
-        method: 'POST',
-        body: msg,
-        mode: 'no-cors'
-    }).catch(() => {
-        const img = new Image();
-        img.src = `https://ntfy.sh/${channel}/publish?message=${encodeURIComponent(msg)}`;
-    });
+    const ch = document.getElementById('CH').value;
+    fetch(`https://ntfy.sh/${ch}`, { method: 'POST', body: msg, mode: 'no-cors' });
 }
 
 function resetUI() {
